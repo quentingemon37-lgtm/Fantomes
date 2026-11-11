@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export async function GET() {
+  const cle = process.env.STRIPE_SECRET_KEY;
+  return NextResponse.json({
+    cle_presente: Boolean(cle),
+    debut: cle ? cle.slice(0, 8) : null,
+    longueur: cle ? cle.length : 0,
+  });
+}
+
 export async function POST(req: NextRequest) {
   const cle = process.env.STRIPE_SECRET_KEY;
   if (!cle) return NextResponse.json({ erreur: "config" }, { status: 500 });
@@ -18,14 +27,17 @@ export async function POST(req: NextRequest) {
   const r = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${cle}`,
+      Authorization: `Bearer ${cle.trim()}`,
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: corps,
   });
   const s = await r.json();
   if (!r.ok || !s.url) {
-    return NextResponse.json({ erreur: "stripe" }, { status: 502 });
+    return NextResponse.json(
+      { erreur: "stripe", detail: s?.error?.message ?? "inconnu" },
+      { status: 502 }
+    );
   }
   return NextResponse.json({ url: s.url });
 }
