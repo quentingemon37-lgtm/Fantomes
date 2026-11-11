@@ -15,15 +15,48 @@ async function lire(fichier: File): Promise<string> {
   }
 }
 
+function lettre(p: Prelevement): string {
+  const nom = p.nom.replace(/\b\w/g, (c) => c.toUpperCase());
+  const date = new Date().toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  return `[Ton prénom et ton nom]
+[Ton adresse]
+[Ton code postal et ta ville]
+
+${nom}
+[Adresse du service client : à retrouver sur leur site]
+
+Le ${date}
+
+Objet : résiliation de mon abonnement
+Référence client : [ton numéro client ou ton adresse email]
+
+Madame, Monsieur,
+
+Par la présente, je vous informe de ma décision de résilier mon abonnement ${nom}, prélevé ${euros(p.montant)} par mois, avec effet à la première date possible.
+
+Je vous demande de mettre fin à tout prélèvement dès réception de ce courrier et de me confirmer la résiliation par écrit, en précisant la date de fin effective.
+
+Dans l’attente de votre confirmation, je vous prie d’agréer, Madame, Monsieur, mes salutations distinguées.
+
+[Ta signature]`;
+}
+
 export default function Depot() {
   const [liste, setListe] = useState<Prelevement[] | null>(null);
   const [erreur, setErreur] = useState("");
+  const [lettreOuverte, setLettreOuverte] = useState(false);
+  const [copie, setCopie] = useState(false);
 
   async function choisirFichier(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
     setErreur("");
     setListe(null);
+    setLettreOuverte(false);
     if (f.size > 5_000_000) {
       setErreur("Ce fichier est trop gros. Exporte une période plus courte.");
       return;
@@ -38,38 +71,126 @@ export default function Depot() {
     setListe(resultat);
   }
 
+  async function copier(texte: string) {
+    try {
+      await navigator.clipboard.writeText(texte);
+      setCopie(true);
+      setTimeout(() => setCopie(false), 2000);
+    } catch {
+      setCopie(false);
+    }
+  }
+
   if (liste) {
     const total = liste.reduce((s, p) => s + p.annuel, 0);
+    const caches = liste.slice(1);
+    const totalCache = caches.reduce((s, p) => s + p.annuel, 0);
+    const premier = liste[0];
+
     return (
       <section className="mt-8">
         <h2 className="text-2xl font-extrabold">
-          {liste.length} prélèvements réguliers trouvés
+          {liste.length} prélèvement{liste.length > 1 ? "s" : ""} régulier
+          {liste.length > 1 ? "s" : ""} trouvé{liste.length > 1 ? "s" : ""}
         </h2>
         <p className="mt-2 text-lg">
           Ensemble, ils coûtent{" "}
           <span className="font-bold text-[#E4572E]">{euros(total)} par an</span>.
         </p>
-        <ul className="mt-6 space-y-3">
-          {liste.map((p) => (
-            <li
-              key={p.nom}
-              className="flex items-center justify-between rounded-xl border-2 border-[#1A2238] px-4 py-3"
+
+        <p className="mt-6 text-sm font-semibold uppercase tracking-wide">
+          Ton premier fantôme, offert
+        </p>
+        <div className="mt-2 rounded-xl border-2 border-[#1A2238] px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold capitalize">{premier.nom}</p>
+              <p className="text-sm">{euros(premier.montant)} par mois</p>
+            </div>
+            <p className="text-lg font-extrabold text-[#E4572E]">
+              {euros(premier.annuel)}
+              <span className="block text-right text-xs font-normal text-[#1A2238]">
+                par an
+              </span>
+            </p>
+          </div>
+
+          {!lettreOuverte ? (
+            <button
+              onClick={() => setLettreOuverte(true)}
+              className="mt-4 block w-full rounded-xl bg-[#E4572E] px-4 py-3 text-center font-semibold text-white"
             >
-              <div>
-                <p className="font-semibold capitalize">{p.nom}</p>
-                <p className="text-sm">{euros(p.montant)} par mois</p>
-              </div>
-              <p className="text-lg font-extrabold text-[#E4572E]">
-                {euros(p.annuel)}
-                <span className="block text-right text-xs font-normal text-[#1A2238]">
-                  par an
-                </span>
+              Voir ma lettre de résiliation
+            </button>
+          ) : (
+            <div className="mt-4">
+              <textarea
+                readOnly
+                value={lettre(premier)}
+                rows={16}
+                className="w-full rounded-xl border-2 border-[#1A2238]/30 bg-white p-3 text-sm"
+              />
+              <button
+                onClick={() => copier(lettre(premier))}
+                className="mt-2 block w-full rounded-xl bg-[#1A2238] px-4 py-3 text-center font-semibold text-white"
+              >
+                {copie ? "Lettre copiée" : "Copier la lettre"}
+              </button>
+              <p className="mt-2 text-sm">
+                Remplace les champs entre crochets, puis envoie-la par courrier
+                recommandé ou depuis l’espace client du service.
               </p>
-            </li>
-          ))}
-        </ul>
+            </div>
+          )}
+        </div>
+
+        {caches.length > 0 && (
+          <>
+            <p className="mt-8 text-sm font-semibold uppercase tracking-wide">
+              Les {caches.length} autres, verrouillés
+            </p>
+            <ul className="mt-2 space-y-3">
+              {caches.map((p) => (
+                <li
+                  key={p.nom}
+                  className="flex items-center justify-between rounded-xl border-2 border-dashed border-[#1A2238]/40 bg-[#1A2238]/5 px-4 py-3"
+                >
+                  <div>
+                    <p className="select-none font-semibold tracking-widest">
+                      ••••••••
+                    </p>
+                    <p className="text-sm">Verrouillé</p>
+                  </div>
+                  <p className="text-lg font-extrabold text-[#E4572E]">
+                    {euros(p.annuel)}
+                    <span className="block text-right text-xs font-normal text-[#1A2238]">
+                      par an
+                    </span>
+                  </p>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-6 rounded-xl border-2 border-[#1A2238] p-5">
+              <p className="text-lg">
+                Derrière ces lignes :{" "}
+                <span className="font-extrabold text-[#E4572E]">
+                  {euros(totalCache)} par an
+                </span>
+                , avec une lettre de résiliation prête pour chacune.
+              </p>
+              <p className="mt-3 rounded-xl bg-[#1A2238]/10 px-4 py-3 text-center font-semibold">
+                Déblocage : bientôt disponible
+              </p>
+            </div>
+          </>
+        )}
+
         <button
-          onClick={() => setListe(null)}
+          onClick={() => {
+            setListe(null);
+            setLettreOuverte(false);
+          }}
           className="mt-6 text-sm underline"
         >
           Essayer avec un autre fichier
@@ -97,4 +218,4 @@ export default function Depot() {
       )}
     </section>
   );
-}
+      }
