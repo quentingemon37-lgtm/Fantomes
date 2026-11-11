@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState } from "react";import Depot from "./Depot";
 
 type Reponse = { label: string; valeur: number };
 
@@ -126,9 +126,9 @@ export default function Commencer() {
         </p>
       </div>
 
-      <p className="mt-8 rounded-xl bg-[#1A2238]/10 px-6 py-4 text-center text-lg font-semibold">
-        Dépôt du relevé : bientôt disponible
-      </p>
+            <Depot />
+        
+  
     </main>
   );
         }
