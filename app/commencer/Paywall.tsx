@@ -1,3 +1,5 @@
+import BoutonPaiement from "./BoutonPaiement";
+
 const EMAIL_CONTACT = "quentin.gemon37@gmail.com";
 const PRIX = 19;
 
@@ -58,9 +60,7 @@ export default function Paywall({
         <p className="mt-1 text-4xl font-extrabold">{euros(PRIX)}</p>
         <p className="mt-1">Paiement unique. Aucun abonnement, rien à résilier.</p>
 
-        <p className="mt-4 rounded-xl bg-[#1A2238]/10 px-4 py-3 text-center font-semibold">
-          Paiement : bientôt disponible
-        </p>
+        <BoutonPaiement />
 
         <p className="mt-4 text-sm">
           <strong>Satisfait ou remboursé pendant 30 jours.</strong> Écris à{" "}
