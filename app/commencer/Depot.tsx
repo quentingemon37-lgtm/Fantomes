@@ -41,6 +41,9 @@ export default function Depot() {
       return;
     }
     setListe(resultat);
+    try {
+      localStorage.setItem("fantomes_liste", JSON.stringify(resultat));
+    } catch {}
   }
 
   async function copier(texte: string) {
